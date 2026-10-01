@@ -118,15 +118,6 @@ Launch an app on workspace 2 and then run an extra Umbriel command:
 
 ---
 
-## Example keybindings
-
-```ini
-bind = SUPER, RETURN, spawn, ~/.local/bin/rs -t 1 -a org.kde.konsole -- konsole
-bind = SUPER, e, spawn, ~/.local/bin/rs -a org.gnome.Nautilus -- GSK_RENDERER=gl nautilus
-bind = SUPER, m, spawn, ~/.local/bin/rs -T "mc [" -- alacritty -e mc
-bind = SUPER, 1, spawn, ~/.local/bin/rs -a Alacritty -i "mc [" -- alacritty
-```
-
 The script is designed to be used as a single-purpose launcher/focus binding.
 
 ---
