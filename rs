@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# runorfocus dla Umbriel: uruchom program albo przełącz/cyklicznie przechodź po jego oknach.
+# runorfocus for Umbriel: launch the app or switch/cycle through its windows.
 set -euo pipefail
 
 TAG=""
@@ -14,12 +14,12 @@ FOCUS_CHECK_DELAY=0.05
 FOCUS_CHECK_MAX=10
 SEP=$'\037'
 
-# Wysyła akcję do kompozytora Umbriel.
+# Sends an action to the Umbriel compositor.
 um() {
   umbriel msg "$1" >/dev/null 2>&1
 }
 
-# Lista okien jako JSON (tablica obiektów).
+# Lists windows as JSON (array of objects).
 get_windows() {
   umbriel windows --json
 }
@@ -28,7 +28,7 @@ get_active_workspace() {
   umbriel workspaces --json | jq -r 'first(.[] | select(.active == true) | .id) // empty'
 }
 
-# Filtruje okna po app_id / tytule i sortuje po id.
+# Filters windows by app_id / title and sorts by id.
 matching_windows_jq() {
   jq -c \
     --arg appid "$APPID" \
@@ -153,8 +153,8 @@ focus_window_at_idx() {
   local focused_id=""
   local check=0
 
-  # Pole workspace ma postać "WYJŚCIE:NAZWA" (np. "DP-5:1"),
-  # a akcja przyjmuje "<workspace>/<output>".
+  # The workspace field is in the form "OUTPUT:NAME" (e.g. "DP-5:1"),
+  # and the action expects "<workspace>/<output>".
   active_workspace=$(get_active_workspace) || active_workspace=""
   if [[ "$ws" == *:* && "$ws" != "$active_workspace" ]]; then
     um "workspace-switch:${ws##*:}/${ws%:*}" || true
@@ -191,7 +191,7 @@ matching_count=${#ids[@]}
 last_id=$(read_last_id)
 focused_id=$(get_focused_id || true)
 
-# brak pasujących okien
+# no matching windows
 if [ "$matching_count" -eq 0 ]; then
   [ "${#CMD[@]}" -gt 0 ] || exit 1
   if [ -n "$TAG" ]; then
@@ -204,7 +204,7 @@ if [ "$matching_count" -eq 0 ]; then
   exit 0
 fi
 
-# jedno pasujące okno
+# one matching window
 if [ "$matching_count" -eq 1 ]; then
   if [ "${focused_id:-}" = "${ids[0]}" ]; then
     write_last_id "${ids[0]}"
@@ -218,7 +218,7 @@ if [ "$matching_count" -eq 1 ]; then
   fi
 fi
 
-# więcej niż jedno okno: cyklicznie
+# more than one window: cycle through them
 focus_idx=-1
 remembered_idx=-1
 for i in "${!ids[@]}"; do
