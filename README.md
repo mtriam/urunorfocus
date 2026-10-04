@@ -113,7 +113,7 @@ Run a more complex shell command:
 Launch an app on workspace 2 and then run an extra Umbriel command:
 
 ```bash
-~/.local/bin/rs -t 2 -a org.kde.konsole -c "set_prop,0.5" -- konsole
+~/.local/bin/rs -t 2 -a org.kde.konsole -c "window-set-primary-extent:0.3" -- konsole
 ```
 
 ---
