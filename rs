@@ -24,16 +24,33 @@ get_windows() {
   umbriel windows --json
 }
 
-get_active_workspace() {
-  umbriel workspaces --json | jq -r 'first(.[] | select(.active == true) | .id) // empty'
+get_focused_workspace_id() {
+  umbriel workspaces --json | jq -r 'first(.[] | select(.focused == true) | .id) // empty'
 }
 
-# Filters windows by app_id / title and sorts by id.
+get_workspace_switch_arg() {
+  local workspace_id="$1"
+
+  [ -n "$workspace_id" ] || return 1
+
+  jq -er --arg id "$workspace_id" '
+    first(.[] | select(.id == $id))
+    | if . == null then empty
+      elif .named then
+        ("\"" + .name + "\"") + "/" + .output
+      else
+        (.index | tostring) + "/" + .output
+      end
+  ' <<< "$workspace_snapshot"
+}
+
+# Filters windows by app_id / title and orders them by workspace and layout.
 matching_windows_jq() {
   jq -c \
     --arg appid "$APPID" \
     --arg window_title "$WINDOW_TITLE" \
-    --arg ignore_title "$IGNORE_TITLE" '
+    --arg ignore_title "$IGNORE_TITLE" \
+    --argjson workspaces "$workspace_snapshot" '
     def wins: if type == "array" then . else (.windows // []) end;
 
     [ wins[]
@@ -48,8 +65,21 @@ matching_windows_jq() {
           ($ignore_title == ""
             or ((.title // "") | ascii_downcase | contains($ignore_title | ascii_downcase) | not))
         )
+      | . as $window
+      | (first($workspaces[] | select(.id == ($window.workspace // ""))) // {}) as $workspace
+      | [
+          ($workspace.output // $window.output // ""),
+          ($workspace.index // 0),
+          (if $workspace.layout == "scrolling" and ($window.column // -1) >= 0 and ($window.row // -1) >= 0 then 0 else 1 end),
+          (if $workspace.layout == "scrolling" and ($window.column // -1) >= 0 and ($window.row // -1) >= 0 then $window.column else ($window.y // 0) end),
+          (if $workspace.layout == "scrolling" and ($window.column // -1) >= 0 and ($window.row // -1) >= 0 then $window.row else ($window.x // 0) end),
+          ($window.tab_index // -1),
+          ($window.id // "")
+        ] as $order
+      | [$order, $window]
     ]
-    | sort_by(.id)'
+    | sort_by(.[0])
+    | map(.[1])'
 }
 
 while [ "$#" -gt 0 ]; do
@@ -136,28 +166,23 @@ write_last_id() {
 }
 
 get_focused_id() {
-  local active_workspace
-  active_workspace=$(get_active_workspace) || return 0
-  [ -n "$active_workspace" ] || return 0
-
-  get_windows | jq -r --arg active_workspace "$active_workspace" '
-    def wins: if type == "array" then . else (.windows // []) end;
-    first(wins[] | select(.focused == true and .workspace == $active_workspace) | .id) // empty' || true
+  umbriel workspaces --json | jq -r 'first(.[] | select(.focused == true) | .focused_window // empty) // empty' || true
 }
 
 focus_window_at_idx() {
   local idx="$1"
   local target_id="${ids[$idx]}"
   local ws="${workspaces[$idx]}"
+  local workspace_arg
   local active_workspace
   local focused_id=""
   local check=0
 
-  # The workspace field is in the form "OUTPUT:NAME" (e.g. "DP-5:1"),
-  # and the action expects "<workspace>/<output>".
-  active_workspace=$(get_active_workspace) || active_workspace=""
-  if [[ "$ws" == *:* && "$ws" != "$active_workspace" ]]; then
-    um "workspace-switch:${ws##*:}/${ws%:*}" || true
+  # Window workspace IDs are stable handles, not workspace names or indices.
+  workspace_arg=$(get_workspace_switch_arg "$ws") || workspace_arg=""
+  active_workspace=$(get_focused_workspace_id) || active_workspace=""
+  if [ -n "$workspace_arg" ] && [ "$ws" != "$active_workspace" ]; then
+    um "workspace-switch:$workspace_arg" || true
   fi
   um "window-focus:$target_id" || true
 
@@ -175,6 +200,7 @@ focus_window_at_idx() {
   return 1
 }
 
+workspace_snapshot=$(umbriel workspaces --json)
 selected_windows=$(get_windows | matching_windows_jq)
 
 ids=(); workspaces=()
