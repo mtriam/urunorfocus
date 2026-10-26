@@ -166,7 +166,8 @@ write_last_id() {
 }
 
 get_focused_id() {
-  umbriel workspaces --json | jq -r 'first(.[] | select(.focused == true) | .focused_window // empty) // empty' || true
+    umbriel focused-window --json |
+        jq -r '.id // empty' || true
 }
 
 focus_window_at_idx() {
