@@ -55,7 +55,7 @@ Use `--` before the launch command.
 | `-a`, `--appid` | Application ID used by Umbriel |
 | `-T`, `--title` | Window title or title fragment to match |
 | `-i`, `--ignore` | Title fragment to exclude from matches |
-| `-c`, `--command` | Optional `umbriel msg <command>` executed after launching and detecting the new window |
+| `-c`, `--command` | Optional `umbriel msg <command> [argument...]` executed after launching and detecting the new window; separate the command and its arguments with spaces |
 | `-n`, `--no-focuslast` | Keep the current app focused when there is exactly one matching window instead of switching back to the previously focused one |
 | `-- <launch_command...>` | Command used to launch the application. Variables, arguments, and flags are supported. Use `sh -c "..."` for shell features like pipes, redirects, and `&&`. |
 
@@ -72,7 +72,7 @@ umbriel windows --json | jq -r '.[] | [.app_id, .title] | @tsv'
 - If the app is already focused and there are multiple matching windows, it cycles to the next one.
 - If the app is already focused and there is only one matching window, it switches back to the previously focused window unless `-n/--no-focuslast` is set.
 - If the app exists but is not focused, it focuses the matching window.
-- If the app is not running, it switches to the target workspace (if `-t` is set), launches the app, and optionally runs `umbriel msg <command>` after the window appears.
+- If the app is not running, it switches to the target workspace (if `-t` is set), launches the app, and optionally runs `umbriel msg <command> [argument...]` after the window appears.
 
 This is the active implementation and preserves the same fast keyboard-driven workflow.
 
@@ -113,7 +113,7 @@ Run a more complex shell command:
 Launch an app on workspace 2 and then run an extra Umbriel command:
 
 ```bash
-~/.local/bin/rs -t 2 -a org.kde.konsole -c "window-set-primary-extent:0.3" -- konsole
+~/.local/bin/rs -t 2 -a org.kde.konsole -c "window-set-primary-extent 0.3" -- konsole
 ```
 
 ---
